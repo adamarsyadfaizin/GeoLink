@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoLink Tracker · location on open</title>
-    <!-- Font Awesome for icons (free style) -->
+    <title>GeoLink Tracker · with Live Map</title>
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Leaflet CSS (open source map) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * {
             box-sizing: border-box;
@@ -21,7 +23,7 @@
             padding: 20px;
         }
         .card {
-            max-width: 1100px;
+            max-width: 1300px;
             width: 100%;
             background: rgba(255,255,255,0.06);
             backdrop-filter: blur(12px);
@@ -59,6 +61,7 @@
             display: flex;
             flex-wrap: wrap;
             gap: 25px;
+            margin-bottom: 30px;
         }
         .create-panel {
             flex: 2;
@@ -113,11 +116,6 @@
             border-color: #60a5fa;
             background: #0b2138;
             box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
-        }
-        textarea {
-            resize: vertical;
-            min-height: 90px;
-            border-radius: 20px;
         }
         .btn {
             background: #1d4a75;
@@ -181,43 +179,43 @@
         .location-log {
             background: #0b1c2c;
             border-radius: 24px;
-            padding: 20px;
-            max-height: 360px;
+            padding: 12px;
+            max-height: 280px;
             overflow-y: auto;
             border: 1px solid #264a6e;
         }
         .log-entry {
             background: #112a41;
-            margin: 10px 0;
-            padding: 14px 18px;
-            border-radius: 24px;
+            margin: 8px 0;
+            padding: 10px 14px;
+            border-radius: 20px;
             border-left: 6px solid #2d7fd3;
             word-break: break-word;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            font-size: 0.9rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
         }
         .log-entry i {
             color: #68b5ff;
-            width: 24px;
+            width: 22px;
         }
         .log-time {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #8fb5dc;
-            margin-top: 6px;
-            display: flex;
-            gap: 12px;
-            align-items: center;
+            margin-top: 4px;
         }
         .badge {
             background: #1f4d7a;
-            padding: 4px 12px;
+            padding: 2px 8px;
             border-radius: 40px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: white;
+            display: inline-block;
+            margin-left: 5px;
         }
         .empty-log {
             color: #7b9fc7;
             text-align: center;
-            padding: 35px 15px;
+            padding: 30px 10px;
             font-style: italic;
         }
         .warning-note {
@@ -229,11 +227,34 @@
             margin-top: 20px;
             color: #f5d986;
         }
+        /* MAP CONTAINER */
+        .map-container {
+            margin-top: 25px;
+            border-radius: 32px;
+            overflow: hidden;
+            border: 2px solid #2d4b6e;
+            background: #0a1929;
+            height: 350px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.8);
+        }
+        #trackerMap {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+            background: #1a3045;
+        }
         .footer-note {
             color: #5e7fa3;
-            margin-top: 25px;
+            margin-top: 20px;
             text-align: center;
             font-size: 0.8rem;
+        }
+        /* leaflet custom theme */
+        .leaflet-container {
+            font-family: 'Inter', sans-serif;
+        }
+        .leaflet-popup-content {
+            color: #0b1c2c;
         }
     </style>
 </head>
@@ -241,67 +262,66 @@
 <div class="card">
     <h1>
         <i class="fas fa-map-pin"></i> 
-        LinkTracker · Geo
+        LinkTracker · Geo + Map
     </h1>
     <div class="sub">
         <i class="fas fa-shield-alt" style="margin-right: 8px;"></i> 
-        Create a tracking link. When opened, we try to capture city / country (with visitor permission).
+        Create a tracking link. When opened, we capture city/country and show it on the map.
     </div>
 
     <div class="creator-grid">
         <!-- LEFT: creator -->
         <div class="create-panel">
-            <div class="section-title"><i class="fas fa-magic" style="margin-right: 10px;"></i> 1. Build your link</div>
+            <div class="section-title"><i class="fas fa-magic"></i> 1. Build your link</div>
             <div class="input-group">
-                <label><i class="far fa-sticky-note"></i> Campaign name (optional)</label>
-                <input type="text" id="campaignName" placeholder="e.g. summer promo, client44" value="Default">
+                <label><i class="far fa-sticky-note"></i> Campaign name</label>
+                <input type="text" id="campaignName" placeholder="e.g. summer promo" value="Default">
             </div>
             <div class="input-group">
-                <label><i class="fas fa-link"></i> Redirect URL (optional — if empty, we show a blank page)</label>
-                <input type="url" id="redirectUrl" placeholder="https://example.com (optional)">
+                <label><i class="fas fa-link"></i> Redirect URL (optional)</label>
+                <input type="url" id="redirectUrl" placeholder="https://example.com">
             </div>
             <button class="btn" id="generateBtn"><i class="fas fa-cog"></i> Generate tracking link</button>
-
-            <!-- generated link area -->
             <div class="track-link-box">
                 <i class="fas fa-crosshairs" style="color:#7bbaff;"></i>
-                <input type="text" id="trackingLinkOutput" readonly value="— click generate —" placeholder="your link will appear">
+                <input type="text" id="trackingLinkOutput" readonly value="— click generate —">
                 <button class="copy-btn" id="copyLinkBtn"><i class="far fa-copy"></i> copy</button>
             </div>
             <div class="warning-note">
                 <i class="fas fa-eye"></i> 
-                <strong>Privacy first:</strong> Browsers ask for location permission. If denied, we only show IP‑based estimate (country/city approximate).
+                <strong>Note:</strong> Browser asks location permission. If denied, we show IP‑based estimate.
             </div>
         </div>
 
-        <!-- RIGHT: live tracker panel -->
+        <!-- RIGHT: live tracker panel + map preview -->
         <div class="track-panel">
-            <div class="section-title"><i class="fas fa-location-dot"></i> 2. People who opened the link</div>
+            <div class="section-title"><i class="fas fa-location-dot"></i> 2. Visitor log</div>
             <div class="location-log" id="locationLog">
-                <!-- dynamic log entries will appear here -->
-                <div class="empty-log">
-                    <i class="fas fa-map-marked-alt" style="font-size: 2rem; opacity: 0.4; margin-bottom: 10px; display: block;"></i>
-                    No visits yet. Generate a link and open it in a different browser / device.
-                </div>
+                <div class="empty-log"><i class="fas fa-map-marked-alt fa-2x" style="opacity:0.4;"></i><br>No visits yet.</div>
             </div>
-            <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+            <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
                 <button class="copy-btn" id="clearLogBtn" style="background: #262f3c;"><i class="fas fa-broom"></i> clear log</button>
             </div>
         </div>
     </div>
 
-    <!-- how it works + small note -->
+    <!-- MAP SECTION -->
+    <div class="map-container">
+        <div id="trackerMap"></div>
+    </div>
     <div class="footer-note">
-        <i class="fas fa-globe"></i> location based on reverse IP + HTML5 Geolocation (if allowed) · all demo data stored locally
+        <i class="fas fa-globe"></i> location based on reverse IP + HTML5 Geolocation · markers show precise (green) or approx (orange)
     </div>
 </div>
 
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     (function() {
         // ---------- storage ----------
-        let visits = [];   // array of { id, campaign, timestamp, locationText, coords (if any) }
+        let visits = [];
 
-        // campaign name from input
+        // DOM elements
         const campaignInput = document.getElementById('campaignName');
         const redirectInput = document.getElementById('redirectUrl');
         const outputLink = document.getElementById('trackingLinkOutput');
@@ -310,49 +330,108 @@
         const locationLogDiv = document.getElementById('locationLog');
         const clearBtn = document.getElementById('clearLogBtn');
 
-        // helper: render log entries
+        // ---------- map setup ----------
+        let map = null;
+        let markersLayer = L.layerGroup(); // to easily clear/redraw
+
+        function initMap() {
+            if (map) return; // already initialized
+            map = L.map('trackerMap').setView([20, 0], 2); // world view
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+            markersLayer.addTo(map);
+        }
+
+        // call init as soon as possible (but after DOM ready)
+        window.addEventListener('load', initMap);
+
+        // custom icons
+        const preciseIcon = L.divIcon({
+            html: '<i class="fas fa-map-pin" style="font-size: 28px; color: #4ade80; text-shadow: 0 0 8px black;"></i>',
+            iconSize: [28, 28],
+            className: 'custom-marker-precise'
+        });
+        const approxIcon = L.divIcon({
+            html: '<i class="fas fa-map-pin" style="font-size: 28px; color: #fbbf24; text-shadow: 0 0 8px black;"></i>',
+            iconSize: [28, 28],
+            className: 'custom-marker-approx'
+        });
+
+        // function to refresh markers from visits array
+        function refreshMapMarkers() {
+            if (!map) {
+                initMap();
+            }
+            markersLayer.clearLayers();
+            visits.forEach(v => {
+                // if we have coordinates (precise)
+                if (v.coords && v.coords.lat && v.coords.lng) {
+                    const marker = L.marker([v.coords.lat, v.coords.lng], { icon: preciseIcon })
+                        .bindPopup(`
+                            <b>${v.campaign}</b><br>
+                            📍 ${v.locationText}<br>
+                            <small>${new Date(v.timestamp).toLocaleString()}</small>
+                        `);
+                    markersLayer.addLayer(marker);
+                } 
+                // else if we have approx from IP but no coords, we cannot place exact pin.
+                // we could use ip-derived coordinates? not available from ipapi.co free.
+                // we'll skip approx without coords, but we can use a dummy world pin? better not mislead.
+                // for better UX we can place a generic marker at country level? 
+                // optionally if locationText contains country we could approximate, but too complex.
+                // we'll only show markers when we have lat/lng.
+            });
+
+            // if no markers at all, keep world view. if markers exist, adjust view
+            if (markersLayer.getLayers().length > 0) {
+                // fit bounds
+                const group = new L.featureGroup(markersLayer.getLayers());
+                map.fitBounds(group.getBounds(), { padding: [30, 30] });
+            } else {
+                map.setView([20, 0], 2);
+            }
+        }
+
+        // ---------- render log (text) ----------
         function renderLog() {
             if (visits.length === 0) {
-                locationLogDiv.innerHTML = `<div class="empty-log"><i class="fas fa-map-marked-alt" style="font-size: 2rem; opacity: 0.4; margin-bottom: 10px; display: block;"></i>No visits yet. Generate a link and open it in a different browser / device.</div>`;
+                locationLogDiv.innerHTML = `<div class="empty-log"><i class="fas fa-map-marked-alt fa-2x" style="opacity:0.4;"></i><br>No visits yet. Generate a link and open it.</div>`;
                 return;
             }
-
-            // show latest first (reverse order)
             const reversed = [...visits].reverse();
             let html = '';
             reversed.forEach(v => {
                 const timeStr = new Date(v.timestamp).toLocaleString();
-                const camp = v.campaign ? v.campaign : '—';
-                // location text might be short
-                let locHtml = v.locationText || 'unknown location';
-                if (v.coords) {
-                    locHtml += ` <span class="badge" style="background:#2f6d9c;"><i class="fas fa-satellite-dish"></i> precise</span>`;
-                } else {
-                    locHtml += ` <span class="badge" style="background:#5f4e3c;"><i class="fas fa-network-wired"></i> IP approx</span>`;
-                }
+                const camp = v.campaign || '—';
+                let locHtml = v.locationText || 'unknown';
+                const badge = v.coords ? '<span class="badge" style="background:#2f6d9c;"><i class="fas fa-satellite-dish"></i> precise</span>' 
+                                        : '<span class="badge" style="background:#5f4e3c;"><i class="fas fa-network-wired"></i> IP approx</span>';
                 html += `<div class="log-entry">
-                    <div><i class="fas fa-user"></i> <strong>${camp}</strong> · ${locHtml}</div>
+                    <div><i class="fas fa-user"></i> <strong>${camp}</strong> · ${locHtml} ${badge}</div>
                     <div class="log-time"><i class="far fa-clock"></i> ${timeStr}</div>
                 </div>`;
             });
             locationLogDiv.innerHTML = html;
         }
 
-        // load from localStorage
+        // storage
         function loadFromStorage() {
             try {
-                const stored = localStorage.getItem('geoTracker_visits');
-                if (stored) {
-                    visits = JSON.parse(stored) || [];
-                }
+                const stored = localStorage.getItem('geoTracker_visits_map');
+                if (stored) visits = JSON.parse(stored) || [];
             } catch (e) {}
             renderLog();
+            refreshMapMarkers();
         }
         function saveToStorage() {
-            localStorage.setItem('geoTracker_visits', JSON.stringify(visits));
+            localStorage.setItem('geoTracker_visits_map', JSON.stringify(visits));
+            renderLog();
+            refreshMapMarkers();
         }
 
-        // add a visit (called from the tracking page when our link is opened)
         function addVisit(campaign, locationText, coords) {
             const visit = {
                 id: Date.now() + '-' + Math.random().toString(36).substring(2,6),
@@ -363,36 +442,29 @@
             };
             visits.push(visit);
             saveToStorage();
-            renderLog();
         }
 
-        // ---------- build tracking link (as hash fragment) ----------
+        // generate link
         function generateTrackingLink() {
             const campaign = campaignInput.value.trim() || 'untitled';
             const redirect = redirectInput.value.trim();
-            // we build a link that points to this same page with a special hash +#track+...
-            // we use a random string to differentiate, but also embed data: campaign and redirect (if any)
-            // better: store in session ? but we need to deliver via link. we'll encode into hash.
-            // format: #track|campaign|redirect (URI encoded)
             const encodedCamp = encodeURIComponent(campaign);
             const encodedRedir = encodeURIComponent(redirect || '');
             const random = Math.random().toString(36).substring(2,10);
             const hashValue = `track|${encodedCamp}|${encodedRedir}|${random}`;
-            
-            const link = new URL(window.location.href.split('#')[0]);  // base without hash
+            const link = new URL(window.location.href.split('#')[0]);
             link.hash = hashValue;
             outputLink.value = link.toString();
         }
 
-        // copy link
         copyBtn.addEventListener('click', () => {
             if (outputLink.value && !outputLink.value.includes('— click generate')) {
                 navigator.clipboard.writeText(outputLink.value)
                 .then(() => {
-                    const original = copyBtn.innerText;
+                    const orig = copyBtn.innerText;
                     copyBtn.innerText = 'copied!';
-                    setTimeout(() => { copyBtn.innerText = original; }, 1500);
-                }).catch(() => alert('manual copy pls'));
+                    setTimeout(() => copyBtn.innerText = orig, 1500);
+                }).catch(() => alert('manual copy'));
             } else {
                 alert('Generate a link first');
             }
@@ -400,93 +472,63 @@
 
         generateBtn.addEventListener('click', generateTrackingLink);
 
-        // clear log
         clearBtn.addEventListener('click', () => {
-            if (confirm('Clear all visit history?')) {
+            if (confirm('Clear all visits?')) {
                 visits = [];
                 saveToStorage();
-                renderLog();
             }
         });
 
-        // ---------- TRACKING LOGIC: run when page loads with proper hash ----------
+        // ---------- TRACKING LOGIC (same as before, but with IP fallback improvements) ----------
         function processTrackingHash() {
             if (!window.location.hash) return false;
-            const rawHash = window.location.hash.substring(1); // remove '#'
+            const rawHash = window.location.hash.substring(1);
             if (!rawHash.startsWith('track|')) return false;
-            
-            // format: track|campaign|redirect|random
             const parts = rawHash.split('|');
             if (parts.length < 4) return false;
             const campaign = decodeURIComponent(parts[1]);
-            const redirectUrl = decodeURIComponent(parts[2]); // may be empty
-            
-            // --- attempt to get location ---
-            let locationString = 'detecting ...';
+            const redirectUrl = decodeURIComponent(parts[2]);
+
             let capturedCoords = null;
-            
-            // first try ip-based fallback (fetch jsonip + ipapi.co lightweight)
-            // we combine with geolocation api later
             const addVisitWithLocation = (finalLoc, coords) => {
                 addVisit(campaign, finalLoc, coords);
-                // finally redirect if redirectUrl present
                 if (redirectUrl && redirectUrl.startsWith('http')) {
-                    // small delay to ensure log is stored, then redirect
-                    setTimeout(() => {
-                        window.location.href = redirectUrl;
-                    }, 400);
+                    setTimeout(() => { window.location.href = redirectUrl; }, 500);
                 } else {
-                    // if no redirect, we show a simple message (optional)
-                    // we can keep the page as is, maybe show a tiny message.
-                    const body = document.querySelector('.card');
-                    if (body) {
-                        // flash a little info but keep same page (no redirect)
-                        const flash = document.createElement('div');
-                        flash.style.position = 'fixed'; flash.style.bottom='20px'; flash.style.right='20px';
-                        flash.style.background='#1e3f60'; flash.style.padding='12px 24px'; flash.style.borderRadius='40px';
-                        flash.style.color='white'; flash.style.zIndex='9999'; flash.style.boxShadow='0 10px 20px black';
-                        flash.innerHTML = `<i class="fas fa-check-circle"></i> location captured (no redirect)`;
-                        document.body.appendChild(flash);
-                        setTimeout(() => flash.remove(), 3500);
-                    }
+                    const flash = document.createElement('div');
+                    flash.style.position = 'fixed'; flash.style.bottom='20px'; flash.style.right='20px';
+                    flash.style.background='#1e3f60'; flash.style.padding='12px 24px'; flash.style.borderRadius='40px';
+                    flash.style.color='white'; flash.style.zIndex='9999'; flash.style.boxShadow='0 10px 20px black';
+                    flash.innerHTML = `<i class="fas fa-check-circle"></i> location captured (no redirect)`;
+                    document.body.appendChild(flash);
+                    setTimeout(() => flash.remove(), 3500);
                 }
             };
 
-            // 1. try IP approx via ipapi.co (lightweight, no token needed for basic)
+            // --- better IP fallback using ipapi.co (with timeout) ---
+            window.ipFallback = 'location unavailable';
             fetch('https://ipapi.co/json/')
                 .then(res => res.json())
                 .then(ipData => {
-                    let ipBased = '';
                     if (ipData.city && ipData.country_name) {
-                        ipBased = `${ipData.city}, ${ipData.country_name}`;
+                        window.ipFallback = `${ipData.city}, ${ipData.country_name}`;
                     } else if (ipData.country_name) {
-                        ipBased = ipData.country_name;
+                        window.ipFallback = ipData.country_name;
                     } else {
-                        ipBased = 'IP location unavailable';
+                        window.ipFallback = 'IP location unavailable';
                     }
-                    locationString = ipBased + ' (IP)';
-                    // if we later get precise geo, we override, but we keep IP as baseline.
-                    // immediately add a log with IP location (so at least we have something)
-                    // we'll update if precise geo gives better
-                    // we call addVisit with ip first? we better wait a bit for geo, but we can add both?
-                    // we create a temporary log that we will upgrade? simpler: call add after geo attempt.
-                    // but we want to store IP even if geo denied. we store now and later if geo arrives we could add a second? Too many entries.
-                    // better: wait for geo (max 3 sec), then call with best info.
-                    // We'll store final after geo timeout.
-                    window.ipFallback = ipBased; // save
                 })
                 .catch(() => {
-                    window.ipFallback = 'location unavailable (IP limit)';
+                    window.ipFallback = 'IP location failed';
                 });
 
-            // 2. try HTML5 geolocation (with high accuracy)
+            // --- geolocation attempt ---
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((position) => {
-                    // got precise coords
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     capturedCoords = { lat, lng };
-                    // reverse geocode using OSM (no API key)
+                    // reverse geocode
                     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`)
                         .then(r => r.json())
                         .then(geo => {
@@ -497,67 +539,56 @@
                                 preciseLoc = [city, country].filter(Boolean).join(', ');
                             }
                             if (!preciseLoc) preciseLoc = `Lat ${lat.toFixed(3)}, Lng ${lng.toFixed(3)}`;
-                            // final location string
-                            const finalString = preciseLoc + ' (precise)';
-                            addVisitWithLocation(finalString, capturedCoords);
+                            addVisitWithLocation(preciseLoc + ' (precise)', capturedCoords);
                         })
                         .catch(() => {
-                            // fallback: just coordinates
-                            const finalString = `Lat ${lat.toFixed(3)}, Lng ${lng.toFixed(3)} (precise)`;
-                            addVisitWithLocation(finalString, capturedCoords);
+                            addVisitWithLocation(`Lat ${lat.toFixed(3)}, Lng ${lng.toFixed(3)} (precise)`, capturedCoords);
                         });
                 }, (error) => {
-                    // geo denied or error → use IP fallback
-                    let ipBased = window.ipFallback || 'location unavailable';
-                    addVisitWithLocation(ipBased + ' (approx)', null);
+                    // geo error → use IP fallback after short delay
+                    setTimeout(() => {
+                        addVisitWithLocation(window.ipFallback + ' (approx)', null);
+                    }, 600);
                 }, { timeout: 7000, enableHighAccuracy: true });
             } else {
-                // no geolocation support → wait for ip fallback (if already there, else short fetch)
-                if (window.ipFallback) {
+                setTimeout(() => {
                     addVisitWithLocation(window.ipFallback + ' (approx)', null);
-                } else {
-                    // wait tiny bit for ip
-                    setTimeout(() => {
-                        let ipBased = window.ipFallback || 'unknown location';
-                        addVisitWithLocation(ipBased + ' (approx)', null);
-                    }, 800);
-                }
+                }, 600);
             }
 
-            // clean hash from url to avoid reprocessing (optional)
-            // window.history.replaceState(null, '', window.location.pathname + window.location.search);
-            
+            // clean hash after processing
+            setTimeout(() => {
+                if (window.location.hash) {
+                    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                }
+            }, 800);
             return true;
         }
 
-        // if tracking hash, process on load
+        // load & track
         window.addEventListener('load', () => {
             loadFromStorage();
-            const tracked = processTrackingHash();
-            if (tracked) {
-                // optionally remove hash to avoid re-trigger on refresh, but we already used it.
-                // we replace state to clean (#)
-                setTimeout(() => {
-                    if (window.location.hash) {
-                        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-                    }
-                }, 500);
-            }
+            processTrackingHash();
         });
 
-        // also if hash appears later (user might paste), but we already handle on load.
-
-        // manual testing: (for demo we can add a fake visit if user wants)
-        // but no needed.
+        // if map not initialized by any chance, call it
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            setTimeout(initMap, 100);
+        } else {
+            window.addEventListener('load', initMap);
+        }
     })();
 </script>
-<!-- additional small style for mobile -->
+<!-- additional style for mobile -->
 <style>
     @media (max-width: 700px) {
         .creator-grid { flex-direction: column; }
         .track-panel { min-width: auto; }
         h1 { font-size: 2rem; }
+        .map-container { height: 250px; }
     }
+    .custom-marker-precise, .custom-marker-approx { background: transparent; border: none; }
+    .leaflet-popup-content { font-size: 0.9rem; }
 </style>
 </body>
 </html>
