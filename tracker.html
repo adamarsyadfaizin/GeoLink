@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoLink Tracker · location on open</title>
+    <!-- Font Awesome for icons (free style) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: linear-gradient(145deg, #0b1729 0%, #1a2f42 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .card {
+            max-width: 1100px;
+            width: 100%;
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 42px;
+            padding: 30px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.05);
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 500;
+            letter-spacing: -0.5px;
+            color: #f0f6ff;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 8px;
+        }
+        h1 i {
+            color: #7ac7ff;
+            font-size: 2.2rem;
+        }
+        .sub {
+            color: #a3c6e9;
+            margin-bottom: 30px;
+            font-size: 1.05rem;
+            border-left: 3px solid #3d7eb9;
+            padding-left: 18px;
+            background: rgba(0,40,70,0.3);
+            border-radius: 0 20px 20px 0;
+            line-height: 1.5;
+        }
+        .creator-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+        }
+        .create-panel {
+            flex: 2;
+            min-width: 300px;
+            background: rgba(10, 25, 40, 0.7);
+            border-radius: 32px;
+            padding: 28px 24px;
+            border: 1px solid #2d4b6e;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+        }
+        .track-panel {
+            flex: 3;
+            min-width: 400px;
+            background: rgba(8, 20, 33, 0.8);
+            border-radius: 32px;
+            padding: 24px;
+            border: 1px solid #2a4a70;
+            backdrop-filter: blur(4px);
+        }
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: #c9e2ff;
+            margin-bottom: 20px;
+            border-bottom: 1px dashed #3a6290;
+            padding-bottom: 8px;
+        }
+        .input-group {
+            margin-bottom: 24px;
+        }
+        label {
+            display: block;
+            color: #b3d6ff;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+            letter-spacing: 0.3px;
+        }
+        input, textarea {
+            width: 100%;
+            background: #0c1e30;
+            border: 1px solid #2c4f74;
+            border-radius: 24px;
+            padding: 14px 20px;
+            font-size: 1rem;
+            color: #eef5ff;
+            outline: none;
+            transition: all 0.2s;
+            font-family: 'Inter', monospace;
+        }
+        input:focus, textarea:focus {
+            border-color: #60a5fa;
+            background: #0b2138;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 90px;
+            border-radius: 20px;
+        }
+        .btn {
+            background: #1d4a75;
+            border: none;
+            color: white;
+            font-weight: 500;
+            padding: 14px 28px;
+            border-radius: 40px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: 1px solid #3882c7;
+            box-shadow: 0 6px 12px rgba(0,20,40,0.8);
+        }
+        .btn:hover {
+            background: #246397;
+            transform: translateY(-2px);
+            border-color: #60a5fa;
+        }
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .track-link-box {
+            background: #0e233a;
+            padding: 15px 20px;
+            border-radius: 40px;
+            border: 1px solid #3f6797;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0 25px;
+        }
+        .track-link-box input {
+            background: transparent;
+            border: none;
+            padding: 8px 5px;
+            font-size: 0.9rem;
+            color: #b3dcff;
+            flex: 1;
+        }
+        .copy-btn {
+            background: #1e3f5e;
+            border: none;
+            color: #cde1ff;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.15s;
+            border: 1px solid #4b7eb0;
+        }
+        .copy-btn:hover {
+            background: #2b5379;
+            color: white;
+        }
+        .location-log {
+            background: #0b1c2c;
+            border-radius: 24px;
+            padding: 20px;
+            max-height: 360px;
+            overflow-y: auto;
+            border: 1px solid #264a6e;
+        }
+        .log-entry {
+            background: #112a41;
+            margin: 10px 0;
+            padding: 14px 18px;
+            border-radius: 24px;
+            border-left: 6px solid #2d7fd3;
+            word-break: break-word;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .log-entry i {
+            color: #68b5ff;
+            width: 24px;
+        }
+        .log-time {
+            font-size: 0.75rem;
+            color: #8fb5dc;
+            margin-top: 6px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .badge {
+            background: #1f4d7a;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            color: white;
+        }
+        .empty-log {
+            color: #7b9fc7;
+            text-align: center;
+            padding: 35px 15px;
+            font-style: italic;
+        }
+        .warning-note {
+            font-size: 0.8rem;
+            background: rgba(220, 180, 40, 0.15);
+            border: 1px solid #b68b2c;
+            border-radius: 16px;
+            padding: 8px 15px;
+            margin-top: 20px;
+            color: #f5d986;
+        }
+        .footer-note {
+            color: #5e7fa3;
+            margin-top: 25px;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>
+        <i class="fas fa-map-pin"></i> 
+        LinkTracker · Geo
+    </h1>
+    <div class="sub">
+        <i class="fas fa-shield-alt" style="margin-right: 8px;"></i> 
+        Create a tracking link. When opened, we try to capture city / country (with visitor permission).
+    </div>
+
+    <div class="creator-grid">
+        <!-- LEFT: creator -->
+        <div class="create-panel">
+            <div class="section-title"><i class="fas fa-magic" style="margin-right: 10px;"></i> 1. Build your link</div>
+            <div class="input-group">
+                <label><i class="far fa-sticky-note"></i> Campaign name (optional)</label>
+                <input type="text" id="campaignName" placeholder="e.g. summer promo, client44" value="Default">
+            </div>
+            <div class="input-group">
+                <label><i class="fas fa-link"></i> Redirect URL (optional — if empty, we show a blank page)</label>
+                <input type="url" id="redirectUrl" placeholder="https://example.com (optional)">
+            </div>
+            <button class="btn" id="generateBtn"><i class="fas fa-cog"></i> Generate tracking link</button>
+
+            <!-- generated link area -->
+            <div class="track-link-box">
+                <i class="fas fa-crosshairs" style="color:#7bbaff;"></i>
+                <input type="text" id="trackingLinkOutput" readonly value="— click generate —" placeholder="your link will appear">
+                <button class="copy-btn" id="copyLinkBtn"><i class="far fa-copy"></i> copy</button>
+            </div>
+            <div class="warning-note">
+                <i class="fas fa-eye"></i> 
+                <strong>Privacy first:</strong> Browsers ask for location permission. If denied, we only show IP‑based estimate (country/city approximate).
+            </div>
+        </div>
+
+        <!-- RIGHT: live tracker panel -->
+        <div class="track-panel">
+            <div class="section-title"><i class="fas fa-location-dot"></i> 2. People who opened the link</div>
+            <div class="location-log" id="locationLog">
+                <!-- dynamic log entries will appear here -->
+                <div class="empty-log">
+                    <i class="fas fa-map-marked-alt" style="font-size: 2rem; opacity: 0.4; margin-bottom: 10px; display: block;"></i>
+                    No visits yet. Generate a link and open it in a different browser / device.
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                <button class="copy-btn" id="clearLogBtn" style="background: #262f3c;"><i class="fas fa-broom"></i> clear log</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- how it works + small note -->
+    <div class="footer-note">
+        <i class="fas fa-globe"></i> location based on reverse IP + HTML5 Geolocation (if allowed) · all demo data stored locally
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---------- storage ----------
+        let visits = [];   // array of { id, campaign, timestamp, locationText, coords (if any) }
+
+        // campaign name from input
+        const campaignInput = document.getElementById('campaignName');
+        const redirectInput = document.getElementById('redirectUrl');
+        const outputLink = document.getElementById('trackingLinkOutput');
+        const generateBtn = document.getElementById('generateBtn');
+        const copyBtn = document.getElementById('copyLinkBtn');
+        const locationLogDiv = document.getElementById('locationLog');
+        const clearBtn = document.getElementById('clearLogBtn');
+
+        // helper: render log entries
+        function renderLog() {
+            if (visits.length === 0) {
+                locationLogDiv.innerHTML = `<div class="empty-log"><i class="fas fa-map-marked-alt" style="font-size: 2rem; opacity: 0.4; margin-bottom: 10px; display: block;"></i>No visits yet. Generate a link and open it in a different browser / device.</div>`;
+                return;
+            }
+
+            // show latest first (reverse order)
+            const reversed = [...visits].reverse();
+            let html = '';
+            reversed.forEach(v => {
+                const timeStr = new Date(v.timestamp).toLocaleString();
+                const camp = v.campaign ? v.campaign : '—';
+                // location text might be short
+                let locHtml = v.locationText || 'unknown location';
+                if (v.coords) {
+                    locHtml += ` <span class="badge" style="background:#2f6d9c;"><i class="fas fa-satellite-dish"></i> precise</span>`;
+                } else {
+                    locHtml += ` <span class="badge" style="background:#5f4e3c;"><i class="fas fa-network-wired"></i> IP approx</span>`;
+                }
+                html += `<div class="log-entry">
+                    <div><i class="fas fa-user"></i> <strong>${camp}</strong> · ${locHtml}</div>
+                    <div class="log-time"><i class="far fa-clock"></i> ${timeStr}</div>
+                </div>`;
+            });
+            locationLogDiv.innerHTML = html;
+        }
+
+        // load from localStorage
+        function loadFromStorage() {
+            try {
+                const stored = localStorage.getItem('geoTracker_visits');
+                if (stored) {
+                    visits = JSON.parse(stored) || [];
+                }
+            } catch (e) {}
+            renderLog();
+        }
+        function saveToStorage() {
+            localStorage.setItem('geoTracker_visits', JSON.stringify(visits));
+        }
+
+        // add a visit (called from the tracking page when our link is opened)
+        function addVisit(campaign, locationText, coords) {
+            const visit = {
+                id: Date.now() + '-' + Math.random().toString(36).substring(2,6),
+                campaign: campaign || 'unnamed',
+                timestamp: new Date().toISOString(),
+                locationText: locationText || 'Location unknown',
+                coords: coords || null
+            };
+            visits.push(visit);
+            saveToStorage();
+            renderLog();
+        }
+
+        // ---------- build tracking link (as hash fragment) ----------
+        function generateTrackingLink() {
+            const campaign = campaignInput.value.trim() || 'untitled';
+            const redirect = redirectInput.value.trim();
+            // we build a link that points to this same page with a special hash +#track+...
+            // we use a random string to differentiate, but also embed data: campaign and redirect (if any)
+            // better: store in session ? but we need to deliver via link. we'll encode into hash.
+            // format: #track|campaign|redirect (URI encoded)
+            const encodedCamp = encodeURIComponent(campaign);
+            const encodedRedir = encodeURIComponent(redirect || '');
+            const random = Math.random().toString(36).substring(2,10);
+            const hashValue = `track|${encodedCamp}|${encodedRedir}|${random}`;
+            
+            const link = new URL(window.location.href.split('#')[0]);  // base without hash
+            link.hash = hashValue;
+            outputLink.value = link.toString();
+        }
+
+        // copy link
+        copyBtn.addEventListener('click', () => {
+            if (outputLink.value && !outputLink.value.includes('— click generate')) {
+                navigator.clipboard.writeText(outputLink.value)
+                .then(() => {
+                    const original = copyBtn.innerText;
+                    copyBtn.innerText = 'copied!';
+                    setTimeout(() => { copyBtn.innerText = original; }, 1500);
+                }).catch(() => alert('manual copy pls'));
+            } else {
+                alert('Generate a link first');
+            }
+        });
+
+        generateBtn.addEventListener('click', generateTrackingLink);
+
+        // clear log
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Clear all visit history?')) {
+                visits = [];
+                saveToStorage();
+                renderLog();
+            }
+        });
+
+        // ---------- TRACKING LOGIC: run when page loads with proper hash ----------
+        function processTrackingHash() {
+            if (!window.location.hash) return false;
+            const rawHash = window.location.hash.substring(1); // remove '#'
+            if (!rawHash.startsWith('track|')) return false;
+            
+            // format: track|campaign|redirect|random
+            const parts = rawHash.split('|');
+            if (parts.length < 4) return false;
+            const campaign = decodeURIComponent(parts[1]);
+            const redirectUrl = decodeURIComponent(parts[2]); // may be empty
+            
+            // --- attempt to get location ---
+            let locationString = 'detecting ...';
+            let capturedCoords = null;
+            
+            // first try ip-based fallback (fetch jsonip + ipapi.co lightweight)
+            // we combine with geolocation api later
+            const addVisitWithLocation = (finalLoc, coords) => {
+                addVisit(campaign, finalLoc, coords);
+                // finally redirect if redirectUrl present
+                if (redirectUrl && redirectUrl.startsWith('http')) {
+                    // small delay to ensure log is stored, then redirect
+                    setTimeout(() => {
+                        window.location.href = redirectUrl;
+                    }, 400);
+                } else {
+                    // if no redirect, we show a simple message (optional)
+                    // we can keep the page as is, maybe show a tiny message.
+                    const body = document.querySelector('.card');
+                    if (body) {
+                        // flash a little info but keep same page (no redirect)
+                        const flash = document.createElement('div');
+                        flash.style.position = 'fixed'; flash.style.bottom='20px'; flash.style.right='20px';
+                        flash.style.background='#1e3f60'; flash.style.padding='12px 24px'; flash.style.borderRadius='40px';
+                        flash.style.color='white'; flash.style.zIndex='9999'; flash.style.boxShadow='0 10px 20px black';
+                        flash.innerHTML = `<i class="fas fa-check-circle"></i> location captured (no redirect)`;
+                        document.body.appendChild(flash);
+                        setTimeout(() => flash.remove(), 3500);
+                    }
+                }
+            };
+
+            // 1. try IP approx via ipapi.co (lightweight, no token needed for basic)
+            fetch('https://ipapi.co/json/')
+                .then(res => res.json())
+                .then(ipData => {
+                    let ipBased = '';
+                    if (ipData.city && ipData.country_name) {
+                        ipBased = `${ipData.city}, ${ipData.country_name}`;
+                    } else if (ipData.country_name) {
+                        ipBased = ipData.country_name;
+                    } else {
+                        ipBased = 'IP location unavailable';
+                    }
+                    locationString = ipBased + ' (IP)';
+                    // if we later get precise geo, we override, but we keep IP as baseline.
+                    // immediately add a log with IP location (so at least we have something)
+                    // we'll update if precise geo gives better
+                    // we call addVisit with ip first? we better wait a bit for geo, but we can add both?
+                    // we create a temporary log that we will upgrade? simpler: call add after geo attempt.
+                    // but we want to store IP even if geo denied. we store now and later if geo arrives we could add a second? Too many entries.
+                    // better: wait for geo (max 3 sec), then call with best info.
+                    // We'll store final after geo timeout.
+                    window.ipFallback = ipBased; // save
+                })
+                .catch(() => {
+                    window.ipFallback = 'location unavailable (IP limit)';
+                });
+
+            // 2. try HTML5 geolocation (with high accuracy)
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    // got precise coords
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    capturedCoords = { lat, lng };
+                    // reverse geocode using OSM (no API key)
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`)
+                        .then(r => r.json())
+                        .then(geo => {
+                            let preciseLoc = '';
+                            if (geo.address) {
+                                const city = geo.address.city || geo.address.town || geo.address.village || geo.address.county;
+                                const country = geo.address.country;
+                                preciseLoc = [city, country].filter(Boolean).join(', ');
+                            }
+                            if (!preciseLoc) preciseLoc = `Lat ${lat.toFixed(3)}, Lng ${lng.toFixed(3)}`;
+                            // final location string
+                            const finalString = preciseLoc + ' (precise)';
+                            addVisitWithLocation(finalString, capturedCoords);
+                        })
+                        .catch(() => {
+                            // fallback: just coordinates
+                            const finalString = `Lat ${lat.toFixed(3)}, Lng ${lng.toFixed(3)} (precise)`;
+                            addVisitWithLocation(finalString, capturedCoords);
+                        });
+                }, (error) => {
+                    // geo denied or error → use IP fallback
+                    let ipBased = window.ipFallback || 'location unavailable';
+                    addVisitWithLocation(ipBased + ' (approx)', null);
+                }, { timeout: 7000, enableHighAccuracy: true });
+            } else {
+                // no geolocation support → wait for ip fallback (if already there, else short fetch)
+                if (window.ipFallback) {
+                    addVisitWithLocation(window.ipFallback + ' (approx)', null);
+                } else {
+                    // wait tiny bit for ip
+                    setTimeout(() => {
+                        let ipBased = window.ipFallback || 'unknown location';
+                        addVisitWithLocation(ipBased + ' (approx)', null);
+                    }, 800);
+                }
+            }
+
+            // clean hash from url to avoid reprocessing (optional)
+            // window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            
+            return true;
+        }
+
+        // if tracking hash, process on load
+        window.addEventListener('load', () => {
+            loadFromStorage();
+            const tracked = processTrackingHash();
+            if (tracked) {
+                // optionally remove hash to avoid re-trigger on refresh, but we already used it.
+                // we replace state to clean (#)
+                setTimeout(() => {
+                    if (window.location.hash) {
+                        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                    }
+                }, 500);
+            }
+        });
+
+        // also if hash appears later (user might paste), but we already handle on load.
+
+        // manual testing: (for demo we can add a fake visit if user wants)
+        // but no needed.
+    })();
+</script>
+<!-- additional small style for mobile -->
+<style>
+    @media (max-width: 700px) {
+        .creator-grid { flex-direction: column; }
+        .track-panel { min-width: auto; }
+        h1 { font-size: 2rem; }
+    }
+</style>
+</body>
+</html>
